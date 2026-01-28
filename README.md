@@ -8,7 +8,7 @@
 > - [FORK_WORKFLOW.md](FORK_WORKFLOW.md) - How to sync with upstream and manage the fork
 >
 > **Quick Reference:**
-> - Joystick Gimbal Control: Enabled by default, UI hidden (set `joystickGimbalShowUI: true` to show)
+> - Joystick calibration includes Gimbal Pitch and Camera Zoom axis assignment
 <!-- ========== FORK NOTICE - END ========== -->
 
 <p align="center">
