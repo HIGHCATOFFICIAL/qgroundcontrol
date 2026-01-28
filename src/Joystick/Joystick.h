@@ -93,7 +93,7 @@ public:
         yawFunction,
         throttleFunction,
         gimbalPitchFunction,
-        gimbalYawFunction,
+        cameraZoomFunction,
         maxAxisFunction // If the value of this is changed, be sure to update JoystickAxis.SettingsGroup.json/stickFunction metadata
     };
     static QString axisFunctionToString(AxisFunction_t function);

@@ -28,19 +28,29 @@ class RemoteControlCalibrationController : public FactPanelController
     Q_PROPERTY(bool         pitchChannelMapped          READ   pitchChannelMapped       NOTIFY pitchChannelMappedChanged)
     Q_PROPERTY(bool         yawChannelMapped            READ   yawChannelMapped         NOTIFY yawChannelMappedChanged)
     Q_PROPERTY(bool         throttleChannelMapped       READ   throttleChannelMapped    NOTIFY throttleChannelMappedChanged)
+    Q_PROPERTY(bool         gimbalPitchChannelMapped    READ   gimbalPitchChannelMapped NOTIFY gimbalPitchChannelMappedChanged)
+    Q_PROPERTY(bool         cameraZoomChannelMapped     READ   cameraZoomChannelMapped  NOTIFY cameraZoomChannelMappedChanged)
     Q_PROPERTY(int          adjustedRollChannelValue     READ  adjustedRollChannelValue     NOTIFY adjustedRollChannelValueChanged)
     Q_PROPERTY(int          adjustedPitchChannelValue    READ  adjustedPitchChannelValue    NOTIFY adjustedPitchChannelValueChanged)
     Q_PROPERTY(int          adjustedYawChannelValue      READ  adjustedYawChannelValue      NOTIFY adjustedYawChannelValueChanged)
     Q_PROPERTY(int          adjustedThrottleChannelValue READ  adjustedThrottleChannelValue NOTIFY adjustedThrottleChannelValueChanged)
+    Q_PROPERTY(int          adjustedGimbalPitchChannelValue READ adjustedGimbalPitchChannelValue NOTIFY adjustedGimbalPitchChannelValueChanged)
+    Q_PROPERTY(int          adjustedCameraZoomChannelValue  READ adjustedCameraZoomChannelValue  NOTIFY adjustedCameraZoomChannelValueChanged)
     Q_PROPERTY(int          rollChannelReversed         READ   rollChannelReversed       NOTIFY rollChannelReversedChanged)
     Q_PROPERTY(int          pitchChannelReversed        READ   pitchChannelReversed      NOTIFY pitchChannelReversedChanged)
     Q_PROPERTY(int          yawChannelReversed          READ   yawChannelReversed        NOTIFY yawChannelReversedChanged)
     Q_PROPERTY(int          throttleChannelReversed     READ   throttleChannelReversed   NOTIFY throttleChannelReversedChanged)
+    Q_PROPERTY(int          gimbalPitchChannelReversed  READ   gimbalPitchChannelReversed NOTIFY gimbalPitchChannelReversedChanged)
+    Q_PROPERTY(int          cameraZoomChannelReversed   READ   cameraZoomChannelReversed  NOTIFY cameraZoomChannelReversedChanged)
     Q_PROPERTY(int          rollDeadband                READ   rollDeadband             NOTIFY rollDeadbandChanged)
     Q_PROPERTY(int          pitchDeadband               READ   pitchDeadband            NOTIFY pitchDeadbandChanged)
     Q_PROPERTY(int          yawDeadband                 READ   yawDeadband              NOTIFY yawDeadbandChanged)
     Q_PROPERTY(int          throttleDeadband            READ   throttleDeadband         NOTIFY throttleDeadbandChanged)
+    Q_PROPERTY(int          gimbalPitchDeadband         READ   gimbalPitchDeadband      NOTIFY gimbalPitchDeadbandChanged)
+    Q_PROPERTY(int          cameraZoomDeadband          READ   cameraZoomDeadband       NOTIFY cameraZoomDeadbandChanged)
     Q_PROPERTY(QList<int>   stickDisplayPositions       READ   stickDisplayPositions     NOTIFY stickDisplayPositionsChanged)
+    Q_PROPERTY(int          gimbalPitchSliderPosition   READ   gimbalPitchSliderPosition NOTIFY gimbalPitchSliderPositionChanged)
+    Q_PROPERTY(int          cameraZoomSliderPosition    READ   cameraZoomSliderPosition  NOTIFY cameraZoomSliderPositionChanged)
 
     Q_PROPERTY(bool         centeredThrottle            READ   centeredThrottle          WRITE setCenteredThrottle   NOTIFY centeredThrottleChanged)
     Q_PROPERTY(int          transmitterMode             READ   transmitterMode           WRITE setTransmitterMode    NOTIFY transmitterModeChanged)
@@ -57,6 +67,8 @@ public:
         stickFunctionPitch,
         stickFunctionYaw,
         stickFunctionThrottle,
+        stickFunctionGimbalPitch,
+        stickFunctionCameraZoom,
         stickFunctionMax,
     };
 
@@ -69,18 +81,28 @@ public:
     int adjustedPitchChannelValue();
     int adjustedYawChannelValue();
     int adjustedThrottleChannelValue();
+    int adjustedGimbalPitchChannelValue();
+    int adjustedCameraZoomChannelValue();
     bool rollChannelMapped();
     bool pitchChannelMapped();
     bool yawChannelMapped();
     bool throttleChannelMapped();
+    bool gimbalPitchChannelMapped();
+    bool cameraZoomChannelMapped();
     bool rollChannelReversed();
     bool pitchChannelReversed();
     bool yawChannelReversed();
     bool throttleChannelReversed();
+    bool gimbalPitchChannelReversed();
+    bool cameraZoomChannelReversed();
     int rollDeadband();
     int pitchDeadband();
     int yawDeadband();
     int throttleDeadband();
+    int gimbalPitchDeadband();
+    int cameraZoomDeadband();
+    int gimbalPitchSliderPosition() const { return _gimbalPitchSliderPosition; }
+    int cameraZoomSliderPosition() const { return _cameraZoomSliderPosition; }
     int channelCount() const { return _chanCount; }
     int transmitterMode() const { return _transmitterMode; }
     QList<int> stickDisplayPositions() const { return _stickDisplayPositions; }
@@ -99,18 +121,28 @@ signals:
     void pitchChannelMappedChanged(bool mapped);
     void yawChannelMappedChanged(bool mapped);
     void throttleChannelMappedChanged(bool mapped);
+    void gimbalPitchChannelMappedChanged(bool mapped);
+    void cameraZoomChannelMappedChanged(bool mapped);
     void adjustedRollChannelValueChanged(int rcValue);
     void adjustedPitchChannelValueChanged(int rcValue);
     void adjustedYawChannelValueChanged(int rcValue);
     void adjustedThrottleChannelValueChanged(int rcValue);
+    void adjustedGimbalPitchChannelValueChanged(int rcValue);
+    void adjustedCameraZoomChannelValueChanged(int rcValue);
     void rollChannelReversedChanged(bool reversed);
     void pitchChannelReversedChanged(bool reversed);
     void yawChannelReversedChanged(bool reversed);
     void throttleChannelReversedChanged(bool reversed);
+    void gimbalPitchChannelReversedChanged(bool reversed);
+    void cameraZoomChannelReversedChanged(bool reversed);
     void rollDeadbandChanged(int deadband);
     void pitchDeadbandChanged(int deadband);
     void yawDeadbandChanged(int deadband);
     void throttleDeadbandChanged(int deadband);
+    void gimbalPitchDeadbandChanged(int deadband);
+    void cameraZoomDeadbandChanged(int deadband);
+    void gimbalPitchSliderPositionChanged();
+    void cameraZoomSliderPositionChanged();
     void transmitterModeChanged();
     void stickDisplayPositionsChanged();
     void centeredThrottleChanged(bool centeredThrottle);
@@ -185,6 +217,10 @@ private:
         StateMachineStepPitchUp,
         StateMachineStepPitchDown,
         StateMachineStepPitchCenter,
+        StateMachineStepGimbalPitchUp,
+        StateMachineStepGimbalPitchDown,
+        StateMachineStepCameraZoomIn,
+        StateMachineStepCameraZoomOut,
         StateMachineStepSwitchMinMax,
         StateMachineStepComplete
     };
@@ -246,6 +282,8 @@ private:
     QQuickItem *_nextButton = nullptr;
 
     QList<int> _stickDisplayPositions;
+    int _gimbalPitchSliderPosition = 0;  // -1 = left, 0 = center, 1 = right
+    int _cameraZoomSliderPosition = 0;   // -1 = left, 0 = center, 1 = right
     bool _centeredThrottle = false;
     bool _joystickMode = false;
     bool _calibrating = false;

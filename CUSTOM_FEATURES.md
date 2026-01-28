@@ -7,9 +7,10 @@ This document describes modifications made to the upstream QGroundControl codeba
 ## Table of Contents
 
 1. [Joystick Gimbal Control](#1-joystick-gimbal-control)
-2. [Bug Fixes](#bug-fixes)
-3. [Configuration Reference](#configuration-reference)
-4. [Files Modified from Upstream](#files-modified-from-upstream)
+2. [Joystick Gimbal & Camera Calibration](#2-joystick-gimbal--camera-calibration)
+3. [Bug Fixes](#bug-fixes)
+4. [Configuration Reference](#configuration-reference)
+5. [Files Modified from Upstream](#files-modified-from-upstream)
 
 ---
 
@@ -96,6 +97,63 @@ The joystick runs in a separate thread. Input is marshalled to the main Qt threa
 
 ---
 
+## 2. Joystick Gimbal & Camera Calibration
+
+### Description
+
+Adds gimbal pitch and camera zoom axis calibration to the joystick calibration flow. This allows users to assign any joystick axis to control gimbal pitch and camera zoom through a guided calibration process.
+
+### How It Works
+
+During joystick calibration, after the standard flight control axes (throttle, yaw, roll, pitch), four additional calibration steps appear:
+
+1. **Gimbal Pitch Up/Right**: Move the gimbal pitch axis to maximum position
+2. **Gimbal Pitch Down/Left**: Move the gimbal pitch axis to minimum position
+3. **Camera Zoom In/Right**: Move the camera zoom axis to maximum position
+4. **Camera Zoom Out/Left**: Move the camera zoom axis to minimum position
+
+The user can assign any available joystick axis to these functions by moving the desired axis during calibration.
+
+### UI Elements
+
+**Attitude Controls Section** (joystick mode only):
+- **Gimbal Pitch** slider - shows current axis value
+- **Camera Zoom** slider - shows current axis value
+
+**Stick Display Area** (joystick mode only):
+- Two horizontal slider visualizers above the stick circles:
+  - **Left slider**: Camera Zoom indicator
+  - **Right slider**: Gimbal Pitch indicator
+- During calibration, the slider indicators show the target position (left or right)
+
+### Calibration Messages
+
+| Step | Message |
+|------|---------|
+| Gimbal Pitch Up | "Move the Gimbal Pitch axis all the way up (or right) and hold it there..." |
+| Gimbal Pitch Down | "Move the Gimbal Pitch axis all the way down (or left) and hold it there..." |
+| Camera Zoom In | "Move the Camera Zoom axis all the way to zoom in (or right) and hold it there..." |
+| Camera Zoom Out | "Move the Camera Zoom axis all the way to zoom out (or left) and hold it there..." |
+
+### Controller Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `gimbalPitchChannelMapped` | bool | Whether gimbal pitch axis is calibrated |
+| `cameraZoomChannelMapped` | bool | Whether camera zoom axis is calibrated |
+| `adjustedGimbalPitchChannelValue` | int | Current gimbal pitch axis value |
+| `adjustedCameraZoomChannelValue` | int | Current camera zoom axis value |
+| `gimbalPitchSliderPosition` | int | Target position for gimbal slider (-1, 0, 1) |
+| `cameraZoomSliderPosition` | int | Target position for zoom slider (-1, 0, 1) |
+
+### Notes
+
+- Calibration steps only appear in **joystick mode** (not RC calibration)
+- The `gimbalYawFunction` was renamed to `cameraZoomFunction` in the Joystick class
+- Axis functions are saved with joystick calibration data
+
+---
+
 ## Bug Fixes
 
 ### SettingsFact Value Display Fix
@@ -155,9 +213,14 @@ This section helps identify merge conflicts when updating from upstream QGC.
 | `src/Settings/GimbalControllerSettings.cc` | Added macros | `DECLARE_SETTINGSFACT` for new settings |
 | `src/Gimbal/GimbalController.h` | Added members | Joystick gimbal methods, signals, slots, timer, state variables |
 | `src/Gimbal/GimbalController.cc` | Added implementation | Joystick input processing, MAVLink sending, message logging |
-| `src/Joystick/Joystick.cc` | Added call | Forwards axis values to `GimbalController::processJoystickGimbalInput()` |
+| `src/Joystick/Joystick.h` | Changed enum | Renamed `gimbalYawFunction` to `cameraZoomFunction` |
+| `src/Joystick/Joystick.cc` | Added mappings | Gimbal pitch and camera zoom axis function mappings |
 | `src/UI/toolbar/GimbalIndicator.qml` | Added UI sections | "Joystick Gimbal Control" and "MAVLink Message Log" sections |
 | `src/Vehicle/VehicleSetup/JoystickComponent.qml` | Added tab | "Gimbal" tab (visibility controlled by setting) |
+| `src/Vehicle/VehicleSetup/JoystickConfigController.cc` | Updated | Include gimbal/camera functions in calibration |
+| `src/Vehicle/VehicleSetup/RemoteControlCalibrationController.h` | Added | Gimbal/camera calibration properties and signals |
+| `src/Vehicle/VehicleSetup/RemoteControlCalibrationController.cc` | Added | Calibration steps, messages, state machine entries |
+| `src/Vehicle/VehicleSetup/RemoteControlCalibration.qml` | Added UI | Gimbal/camera sliders and slider visualizers |
 | `src/Vehicle/VehicleSetup/CMakeLists.txt` | Added file | `JoystickComponentGimbal.qml` to QML_FILES |
 | `src/FactSystem/SettingsFact.cc` | Bug fix | Set `_rawValueIsNotSet = false` after direct assignment |
 
@@ -180,6 +243,7 @@ For QML files, check if upstream has modified the same components. The gimbal-re
 | 2025-01-28 | Initial joystick gimbal control feature | - |
 | 2025-01-28 | Added joystickGimbalShowUI flag to hide UI by default | - |
 | 2025-01-28 | Fixed SettingsFact value display bug | - |
+| 2025-01-28 | Added joystick gimbal pitch and camera zoom calibration | - |
 
 ---
 
