@@ -549,10 +549,10 @@ void Joystick::_saveFromCalibrationDataIntoSettings()
 int Joystick::_mapFunctionMode(int mode, int function)
 {
     static constexpr const int mapping[][6] = {
-        { yawFunction, pitchFunction, rollFunction, throttleFunction, gimbalPitchFunction, gimbalYawFunction },
-        { yawFunction, throttleFunction, rollFunction, pitchFunction, gimbalPitchFunction, gimbalYawFunction },
-        { rollFunction, pitchFunction, yawFunction, throttleFunction, gimbalPitchFunction, gimbalYawFunction },
-        { rollFunction, throttleFunction, yawFunction, pitchFunction, gimbalPitchFunction, gimbalYawFunction }
+        { yawFunction, pitchFunction, rollFunction, throttleFunction, gimbalPitchFunction, cameraZoomFunction },
+        { yawFunction, throttleFunction, rollFunction, pitchFunction, gimbalPitchFunction, cameraZoomFunction },
+        { rollFunction, pitchFunction, yawFunction, throttleFunction, gimbalPitchFunction, cameraZoomFunction },
+        { rollFunction, throttleFunction, yawFunction, pitchFunction, gimbalPitchFunction, cameraZoomFunction }
     };
 
     if ((mode > 0) && (mode <= 4)) {
@@ -1093,6 +1093,10 @@ RemoteControlCalibrationController::StickFunction Joystick::mapAxisFunctionToRCC
             return RemoteControlCalibrationController::stickFunctionYaw;
         case throttleFunction:
             return RemoteControlCalibrationController::stickFunctionThrottle;
+        case gimbalPitchFunction:
+            return RemoteControlCalibrationController::stickFunctionGimbalPitch;
+        case cameraZoomFunction:
+            return RemoteControlCalibrationController::stickFunctionCameraZoom;
         case maxAxisFunction:
             return RemoteControlCalibrationController::stickFunctionMax;
         default:
@@ -1112,6 +1116,10 @@ Joystick::AxisFunction_t Joystick::mapRCCStickFunctionToAxisFunction(RemoteContr
             return yawFunction;
         case RemoteControlCalibrationController::stickFunctionThrottle:
             return throttleFunction;
+        case RemoteControlCalibrationController::stickFunctionGimbalPitch:
+            return gimbalPitchFunction;
+        case RemoteControlCalibrationController::stickFunctionCameraZoom:
+            return cameraZoomFunction;
         default:
             qCWarning(JoystickLog) << "Invalid StickFunction" << stickFunction;
             return rollFunction;
@@ -1439,8 +1447,8 @@ QString Joystick::axisFunctionToString(AxisFunction_t function)
         return QStringLiteral("Throttle");
     case gimbalPitchFunction:
         return QStringLiteral("Gimbal Pitch");
-    case gimbalYawFunction:
-        return QStringLiteral("Gimbal Yaw");
+    case cameraZoomFunction:
+        return QStringLiteral("Camera Zoom");
     case maxAxisFunction:
         return QStringLiteral("Unassigned");
     default:

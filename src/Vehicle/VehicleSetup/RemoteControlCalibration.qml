@@ -120,6 +120,49 @@ ColumnLayout {
                         deadbandEnabled: root._deadbandActive
                     }
                 }
+
+                // Gimbal/Camera controls (joystick mode only)
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: controller.joystickMode
+
+                    QGCLabel {
+                        Layout.fillWidth: true
+                        text: qsTr("Gimbal Pitch")
+                    }
+
+                    RemoteControlChannelValueDisplay {
+                        Layout.preferredWidth: root._channelValueDisplayWidth
+                        mode: RemoteControlChannelValueDisplay.MappedValue
+                        channelValueMin: controller.channelValueMin
+                        channelValueMax: controller.channelValueMax
+                        channelMapped: controller.gimbalPitchChannelMapped
+                        channelValue: controller.adjustedGimbalPitchChannelValue
+                        deadbandValue: controller.gimbalPitchDeadband
+                        deadbandEnabled: root._deadbandActive
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: controller.joystickMode
+
+                    QGCLabel {
+                        Layout.fillWidth: true
+                        text: qsTr("Camera Zoom")
+                    }
+
+                    RemoteControlChannelValueDisplay {
+                        Layout.preferredWidth: root._channelValueDisplayWidth
+                        mode: RemoteControlChannelValueDisplay.MappedValue
+                        channelValueMin: controller.channelValueMin
+                        channelValueMax: controller.channelValueMax
+                        channelMapped: controller.cameraZoomChannelMapped
+                        channelValue: controller.adjustedCameraZoomChannelValue
+                        deadbandValue: controller.cameraZoomDeadband
+                        deadbandEnabled: root._deadbandActive
+                    }
+                }
             }
         }
 
@@ -172,6 +215,124 @@ ColumnLayout {
                         }
                     }
 
+                    // Slider displays for gimbal pitch and camera zoom (above stick circles, joystick mode only)
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: stickDisplayContainer._margins * 2
+                        visible: controller.joystickMode
+
+                        // Left slider - Camera Zoom
+                        Item {
+                            id: cameraZoomSliderContainer
+                            implicitWidth: leftStickDisplay.implicitWidth
+                            implicitHeight: ScreenTools.defaultFontPixelHeight * 1.5
+
+                            property real sliderTrackWidth: width * 0.8
+                            property real sliderAdjust: (sliderTrackWidth / 2) - (ScreenTools.defaultFontPixelHeight * 0.6 / 2)
+
+                            // Slider track
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: parent.sliderTrackWidth
+                                height: 1
+                                color: qgcPal.buttonHighlight
+
+                                // Left end marker
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 1
+                                    height: ScreenTools.defaultFontPixelHeight * 0.5
+                                    color: qgcPal.buttonHighlight
+                                }
+
+                                // Right end marker
+                                Rectangle {
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 1
+                                    height: ScreenTools.defaultFontPixelHeight * 0.5
+                                    color: qgcPal.buttonHighlight
+                                }
+
+                                // Center marker
+                                Rectangle {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 1
+                                    height: ScreenTools.defaultFontPixelHeight * 0.3
+                                    color: qgcPal.buttonHighlight
+                                }
+
+                                // Position indicator (filled circle)
+                                Rectangle {
+                                    x: parent.width / 2 + cameraZoomSliderContainer.sliderAdjust * controller.cameraZoomSliderPosition - width / 2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: ScreenTools.defaultFontPixelHeight * 0.6
+                                    height: width
+                                    radius: width / 2
+                                    color: qgcPal.buttonHighlight
+                                }
+                            }
+                        }
+
+                        // Right slider - Gimbal Pitch
+                        Item {
+                            id: gimbalPitchSliderContainer
+                            implicitWidth: leftStickDisplay.implicitWidth
+                            implicitHeight: ScreenTools.defaultFontPixelHeight * 1.5
+
+                            property real sliderTrackWidth: width * 0.8
+                            property real sliderAdjust: (sliderTrackWidth / 2) - (ScreenTools.defaultFontPixelHeight * 0.6 / 2)
+
+                            // Slider track
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: parent.sliderTrackWidth
+                                height: 1
+                                color: qgcPal.buttonHighlight
+
+                                // Left end marker
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 1
+                                    height: ScreenTools.defaultFontPixelHeight * 0.5
+                                    color: qgcPal.buttonHighlight
+                                }
+
+                                // Right end marker
+                                Rectangle {
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 1
+                                    height: ScreenTools.defaultFontPixelHeight * 0.5
+                                    color: qgcPal.buttonHighlight
+                                }
+
+                                // Center marker
+                                Rectangle {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 1
+                                    height: ScreenTools.defaultFontPixelHeight * 0.3
+                                    color: qgcPal.buttonHighlight
+                                }
+
+                                // Position indicator (filled circle)
+                                Rectangle {
+                                    x: parent.width / 2 + gimbalPitchSliderContainer.sliderAdjust * controller.gimbalPitchSliderPosition - width / 2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: ScreenTools.defaultFontPixelHeight * 0.6
+                                    height: width
+                                    radius: width / 2
+                                    color: qgcPal.buttonHighlight
+                                }
+                            }
+                        }
+                    }
+
+                    // Stick displays (circles)
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: stickDisplayContainer._margins * 2

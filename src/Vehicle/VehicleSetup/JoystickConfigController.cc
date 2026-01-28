@@ -123,9 +123,6 @@ void JoystickConfigController::_readStoredCalibrationValues()
     }
 
     for (int axisFunction = 0; axisFunction < Joystick::maxAxisFunction; axisFunction++) {
-        if (axisFunction == Joystick::gimbalPitchFunction || axisFunction == Joystick::gimbalYawFunction) {
-            continue;
-        }
         StickFunction stickFunction = _joystick->mapAxisFunctionToRCCStickFunction(static_cast<Joystick::AxisFunction_t>(axisFunction));
         int functionChannel = _joystick->getChannelForFunction(stickFunction);
         if (functionChannel >= 0 && functionChannel < _chanMax) {

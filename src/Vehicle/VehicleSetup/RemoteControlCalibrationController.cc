@@ -33,6 +33,10 @@ static constexpr const char *msgPitchCenter =           QT_TR_NOOP("Allow the Pi
 static constexpr const char *msgSwitchMinMaxRC =        QT_TR_NOOP("Move all the transmitter switches and/or dials back and forth to their extreme positions.");
 static constexpr const char *msgSwitchMinMaxJoystick =  QT_TR_NOOP("Move all sticks to their extreme positions.");
 static constexpr const char *msgComplete =              QT_TR_NOOP("All settings have been captured. Click Next to write the new parameters to your board.");
+static constexpr const char *msgGimbalPitchUp =         QT_TR_NOOP("Move the Gimbal Pitch axis all the way up (or right) and hold it there...");
+static constexpr const char *msgGimbalPitchDown =       QT_TR_NOOP("Move the Gimbal Pitch axis all the way down (or left) and hold it there...");
+static constexpr const char *msgCameraZoomIn =          QT_TR_NOOP("Move the Camera Zoom axis all the way to zoom in (or right) and hold it there...");
+static constexpr const char *msgCameraZoomOut =         QT_TR_NOOP("Move the Camera Zoom axis all the way to zoom out (or left) and hold it there...");
 
 RemoteControlCalibrationController::RemoteControlCalibrationController(QObject *parent)
     : FactPanelController(parent)
@@ -48,6 +52,11 @@ RemoteControlCalibrationController::RemoteControlCalibrationController(QObject *
         { stickFunctionPitch,       StateMachineStepPitchUp,        &RemoteControlCalibrationController::_inputStickDetect,     nullptr },
         { stickFunctionPitch,       StateMachineStepPitchDown,      &RemoteControlCalibrationController::_inputStickMin,        nullptr },
         { stickFunctionPitch,       StateMachineStepPitchCenter,    &RemoteControlCalibrationController::_inputCenterWait,      nullptr },
+        // Gimbal pitch and camera zoom calibration steps (joystick mode only - skipped in _advanceState for RC mode)
+        { stickFunctionGimbalPitch, StateMachineStepGimbalPitchUp,  &RemoteControlCalibrationController::_inputStickDetect,     nullptr },
+        { stickFunctionGimbalPitch, StateMachineStepGimbalPitchDown,&RemoteControlCalibrationController::_inputStickMin,        nullptr },
+        { stickFunctionCameraZoom,  StateMachineStepCameraZoomIn,   &RemoteControlCalibrationController::_inputStickDetect,     nullptr },
+        { stickFunctionCameraZoom,  StateMachineStepCameraZoomOut,  &RemoteControlCalibrationController::_inputStickMin,        nullptr },
         { stickFunctionMax,         StateMachineStepSwitchMinMax,   &RemoteControlCalibrationController::_inputSwitchMinMax,    &RemoteControlCalibrationController::_advanceState },
         { stickFunctionMax,         StateMachineStepComplete,       nullptr,                                                    &RemoteControlCalibrationController::_saveCalibrationValues },
     }
@@ -75,6 +84,10 @@ RemoteControlCalibrationController::RemoteControlCalibrationController(QObject *
         { StateMachineStepPitchUp,         msgPitchUp },
         { StateMachineStepPitchDown,       msgPitchDown },
         { StateMachineStepPitchCenter,     msgPitchCenter },
+        { StateMachineStepGimbalPitchUp,   msgGimbalPitchUp },
+        { StateMachineStepGimbalPitchDown, msgGimbalPitchDown },
+        { StateMachineStepCameraZoomIn,    msgCameraZoomIn },
+        { StateMachineStepCameraZoomOut,   msgCameraZoomOut },
         { StateMachineStepSwitchMinMax,    msgSwitchMinMaxRC }, // Adjusted based on joystick mode or not
         { StateMachineStepComplete,        msgComplete },
     };
@@ -136,6 +149,30 @@ RemoteControlCalibrationController::RemoteControlCalibrationController(QObject *
             { 4, { _stickDisplayPositionCentered,       _stickDisplayPositionXCenteredYDown } },
         }},
         { StateMachineStepPitchCenter, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
+        { StateMachineStepGimbalPitchUp, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
+        { StateMachineStepGimbalPitchDown, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
+        { StateMachineStepCameraZoomIn, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
+        { StateMachineStepCameraZoomOut, {
             { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
             { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
             { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
@@ -217,6 +254,30 @@ RemoteControlCalibrationController::RemoteControlCalibrationController(QObject *
             { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
             { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
         }},
+        { StateMachineStepGimbalPitchUp, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
+        { StateMachineStepGimbalPitchDown, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
+        { StateMachineStepCameraZoomIn, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
+        { StateMachineStepCameraZoomOut, {
+            { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 3, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+            { 4, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
+        }},
         { StateMachineStepSwitchMinMax, {
             { 1, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
             { 2, { _stickDisplayPositionCentered, _stickDisplayPositionCentered } },
@@ -258,6 +319,23 @@ const RemoteControlCalibrationController::StateMachineEntry &RemoteControlCalibr
 void RemoteControlCalibrationController::_advanceState()
 {
     _currentStep++;
+
+    // Skip gimbal/camera calibration steps when not in joystick mode
+    while (_currentStep < _stateMachine.size()) {
+        auto state = _getStateMachineEntry(_currentStep);
+        bool isGimbalCameraStep =
+            state.stepFunction == StateMachineStepGimbalPitchUp ||
+            state.stepFunction == StateMachineStepGimbalPitchDown ||
+            state.stepFunction == StateMachineStepCameraZoomIn ||
+            state.stepFunction == StateMachineStepCameraZoomOut;
+
+        if (isGimbalCameraStep && !_joystickMode) {
+            _currentStep++;
+        } else {
+            break;
+        }
+    }
+
     if (_currentStep >= _stateMachine.size()) {
         _stopCalibration();
         return;
@@ -284,6 +362,38 @@ void RemoteControlCalibrationController::_setupCurrentState()
     qDebug() << "_setupCurrentState stepFunction:" << state.stepFunction << "leftStick(h,v):" << bothStickPositions.leftStick.horizontal << bothStickPositions.leftStick.vertical
              << "rightStick(h,v):" << bothStickPositions.rightStick.horizontal << bothStickPositions.rightStick.vertical;
     emit stickDisplayPositionsChanged();
+
+    // Determine slider positions for gimbal pitch and camera zoom calibration
+    int oldGimbalPitchPosition = _gimbalPitchSliderPosition;
+    int oldCameraZoomPosition = _cameraZoomSliderPosition;
+
+    // Reset both to center
+    _gimbalPitchSliderPosition = 0;
+    _cameraZoomSliderPosition = 0;
+
+    switch (state.stepFunction) {
+    case StateMachineStepGimbalPitchUp:
+        _gimbalPitchSliderPosition = 1;  // right
+        break;
+    case StateMachineStepGimbalPitchDown:
+        _gimbalPitchSliderPosition = -1; // left
+        break;
+    case StateMachineStepCameraZoomIn:
+        _cameraZoomSliderPosition = 1;   // right
+        break;
+    case StateMachineStepCameraZoomOut:
+        _cameraZoomSliderPosition = -1;  // left
+        break;
+    default:
+        break;
+    }
+
+    if (oldGimbalPitchPosition != _gimbalPitchSliderPosition) {
+        emit gimbalPitchSliderPositionChanged();
+    }
+    if (oldCameraZoomPosition != _cameraZoomSliderPosition) {
+        emit cameraZoomSliderPositionChanged();
+    }
 
     _stickDetectChannel = _chanMax;
     _stickDetectSettleStarted = false;
@@ -325,6 +435,12 @@ void RemoteControlCalibrationController::rawChannelValuesChanged(QVector<int> ch
                 break;
             case stickFunctionThrottle:
                 emit adjustedThrottleChannelValueChanged(adjustedValue);
+                break;
+            case stickFunctionGimbalPitch:
+                emit adjustedGimbalPitchChannelValueChanged(adjustedValue);
+                break;
+            case stickFunctionCameraZoom:
+                emit adjustedCameraZoomChannelValueChanged(adjustedValue);
                 break;
             default:
                 break;
@@ -778,6 +894,26 @@ int RemoteControlCalibrationController::adjustedThrottleChannelValue()
     }
 }
 
+int RemoteControlCalibrationController::adjustedGimbalPitchChannelValue()
+{
+    int channel = _rgFunctionChannelMapping[stickFunctionGimbalPitch];
+    if (channel != _chanMax) {
+        return _adjustChannelRawValue(_rgChannelInfo[channel], _channelRawValue[channel]);
+    } else {
+        return _calCenterPoint;
+    }
+}
+
+int RemoteControlCalibrationController::adjustedCameraZoomChannelValue()
+{
+    int channel = _rgFunctionChannelMapping[stickFunctionCameraZoom];
+    if (channel != _chanMax) {
+        return _adjustChannelRawValue(_rgChannelInfo[channel], _channelRawValue[channel]);
+    } else {
+        return _calCenterPoint;
+    }
+}
+
 bool RemoteControlCalibrationController::rollChannelMapped()
 {
     return (_rgFunctionChannelMapping[stickFunctionRoll] != _chanMax);
@@ -796,6 +932,16 @@ bool RemoteControlCalibrationController::yawChannelMapped()
 bool RemoteControlCalibrationController::throttleChannelMapped()
 {
     return (_rgFunctionChannelMapping[stickFunctionThrottle] != _chanMax);
+}
+
+bool RemoteControlCalibrationController::gimbalPitchChannelMapped()
+{
+    return (_rgFunctionChannelMapping[stickFunctionGimbalPitch] != _chanMax);
+}
+
+bool RemoteControlCalibrationController::cameraZoomChannelMapped()
+{
+    return (_rgFunctionChannelMapping[stickFunctionCameraZoom] != _chanMax);
 }
 
 bool RemoteControlCalibrationController::rollChannelReversed()
@@ -834,6 +980,24 @@ bool RemoteControlCalibrationController::throttleChannelReversed()
     }
 }
 
+bool RemoteControlCalibrationController::gimbalPitchChannelReversed()
+{
+    if (_rgFunctionChannelMapping[stickFunctionGimbalPitch] != _chanMax) {
+        return _rgChannelInfo[_rgFunctionChannelMapping[stickFunctionGimbalPitch]].channelReversed;
+    } else {
+        return false;
+    }
+}
+
+bool RemoteControlCalibrationController::cameraZoomChannelReversed()
+{
+    if (_rgFunctionChannelMapping[stickFunctionCameraZoom] != _chanMax) {
+        return _rgChannelInfo[_rgFunctionChannelMapping[stickFunctionCameraZoom]].channelReversed;
+    } else {
+        return false;
+    }
+}
+
 void RemoteControlCalibrationController::setTransmitterMode(int mode)
 {
     if (mode < 1 || mode > 4) {
@@ -852,16 +1016,22 @@ void RemoteControlCalibrationController::_signalAllAttitudeValueChanges()
     emit pitchChannelMappedChanged(pitchChannelMapped());
     emit yawChannelMappedChanged(yawChannelMapped());
     emit throttleChannelMappedChanged(throttleChannelMapped());
+    emit gimbalPitchChannelMappedChanged(gimbalPitchChannelMapped());
+    emit cameraZoomChannelMappedChanged(cameraZoomChannelMapped());
 
     emit rollChannelReversedChanged(rollChannelReversed());
     emit pitchChannelReversedChanged(pitchChannelReversed());
     emit yawChannelReversedChanged(yawChannelReversed());
     emit throttleChannelReversedChanged(throttleChannelReversed());
+    emit gimbalPitchChannelReversedChanged(gimbalPitchChannelReversed());
+    emit cameraZoomChannelReversedChanged(cameraZoomChannelReversed());
 
     _emitDeadbandChanged(stickFunctionRoll);
     _emitDeadbandChanged(stickFunctionPitch);
     _emitDeadbandChanged(stickFunctionYaw);
     _emitDeadbandChanged(stickFunctionThrottle);
+    _emitDeadbandChanged(stickFunctionGimbalPitch);
+    _emitDeadbandChanged(stickFunctionCameraZoom);
 }
 
 int RemoteControlCalibrationController::rollDeadband()
@@ -884,6 +1054,16 @@ int RemoteControlCalibrationController::throttleDeadband()
     return _deadbandForFunction(stickFunctionThrottle);
 }
 
+int RemoteControlCalibrationController::gimbalPitchDeadband()
+{
+    return _deadbandForFunction(stickFunctionGimbalPitch);
+}
+
+int RemoteControlCalibrationController::cameraZoomDeadband()
+{
+    return _deadbandForFunction(stickFunctionCameraZoom);
+}
+
 void RemoteControlCalibrationController::copyTrims()
 {
     _vehicle->startCalibration(QGCMAVLink::CalibrationCopyTrims);
@@ -900,6 +1080,10 @@ QString RemoteControlCalibrationController::_stickFunctionToString(StickFunction
         return tr("Yaw");
     case stickFunctionThrottle:
         return tr("Throttle");
+    case stickFunctionGimbalPitch:
+        return tr("Gimbal Pitch");
+    case stickFunctionCameraZoom:
+        return tr("Camera Zoom");
     default:
         return tr("Unknown");
     }
@@ -953,6 +1137,12 @@ void RemoteControlCalibrationController::_emitDeadbandChanged(StickFunction stic
         break;
     case stickFunctionThrottle:
         emit throttleDeadbandChanged(deadband);
+        break;
+    case stickFunctionGimbalPitch:
+        emit gimbalPitchDeadbandChanged(deadband);
+        break;
+    case stickFunctionCameraZoom:
+        emit cameraZoomDeadbandChanged(deadband);
         break;
     default:
         break;
