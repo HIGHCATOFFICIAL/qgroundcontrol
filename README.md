@@ -1,3 +1,15 @@
+<!-- ========== FORK NOTICE - START ========== -->
+> **Note: This is a custom fork of QGroundControl**
+>
+> This repository contains company-specific modifications to the upstream QGC.
+>
+> **Important Documentation:**
+> - [CUSTOM_FEATURES.md](CUSTOM_FEATURES.md) - Custom features, settings, and modifications
+> - [FORK_WORKFLOW.md](FORK_WORKFLOW.md) - How to sync with upstream and manage the fork
+>
+> **Quick Reference:**
+> - Joystick Gimbal Control: Enabled by default, UI hidden (set `joystickGimbalShowUI: true` to show)
+<!-- ========== FORK NOTICE - END ========== -->
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Dronecode/UX-Design/35d8148a8a0559cd4bcf50bfa2c94614983cce91/QGC/Branding/Deliverables/QGC_RGB_Logo_Horizontal_Positive_PREFERRED/QGC_RGB_Logo_Horizontal_Positive_PREFERRED.svg" alt="QGroundControl Logo" width="500">

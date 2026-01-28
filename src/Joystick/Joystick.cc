@@ -4,6 +4,7 @@
 #include "MavlinkActionsSettings.h"
 #include "FirmwarePlugin.h"
 #include "GimbalController.h"
+#include "GimbalControllerSettings.h"
 #include "QGCCorePlugin.h"
 #include "QGCLoggingCategory.h"
 #include "QmlObjectListModel.h"
@@ -842,6 +843,18 @@ void Joystick::_handleAxis()
             // Hardcoded to axis 5
             axisIndex = 5;
             gimbalYaw = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex],useDeadband);
+        }
+
+        // Joystick gimbal control via GIMBAL_DEVICE_SET_ATTITUDE
+        // Pass all axis values to GimbalController - it will check settings in main thread
+        if (GimbalController* gc = vehicle->gimbalController()) {
+            // Send raw axis values for indices 0-7 (common joystick range)
+            // GimbalController will select the correct axes based on settings
+            QVector<float> axisValues;
+            for (int i = 0; i < std::min(_axisCount, 8); i++) {
+                axisValues.append(_adjustRange(_getAxisValue(i), _rgCalibration[i], useDeadband));
+            }
+            gc->processJoystickGimbalInput(axisValues);
         }
 
         if (throttleSmoothing) {
