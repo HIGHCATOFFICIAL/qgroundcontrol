@@ -1,15 +1,13 @@
 #include "GimbalController.h"
 #include "GimbalControllerSettings.h"
+#include "Gimbal.h"
 #include "MAVLinkProtocol.h"
-#include <QtCore/QTime>
 #include "ParameterManager.h"
+#include "QGCCameraManager.h"
 #include "QGCLoggingCategory.h"
 #include "QmlObjectListModel.h"
 #include "SettingsManager.h"
 #include "Vehicle.h"
-#include <cmath>
-#include "Gimbal.h"
-#include "QGCCameraManager.h"
 
 QGC_LOGGING_CATEGORY(GimbalControllerLog, "Gimbal.GimbalController")
 
@@ -20,28 +18,10 @@ GimbalController::GimbalController(Vehicle *vehicle)
 {
     qCDebug(GimbalControllerLog) << this;
 
-    // Register QVector<float> for cross-thread signal/slot
-    static bool registered = false;
-    if (!registered) {
-        qRegisterMetaType<QVector<float>>("QVector<float>");
-        registered = true;
-    }
-
     (void) connect(_vehicle, &Vehicle::mavlinkMessageReceived, this, &GimbalController::_mavlinkMessageReceived);
 
     _rateSenderTimer.setInterval(500);
     (void) connect(&_rateSenderTimer, &QTimer::timeout, this, &GimbalController::_rateSenderTimeout);
-
-    // Setup joystick gimbal send timer based on configured rate
-    auto* settings = SettingsManager::instance()->gimbalControllerSettings();
-    int sendRateHz = settings->joystickGimbalSendRateHz()->rawValue().toInt();
-    if (sendRateHz <= 0) sendRateHz = 50;
-    _joystickGimbalSendTimer.setInterval(1000 / sendRateHz);
-    (void) connect(&_joystickGimbalSendTimer, &QTimer::timeout, this, &GimbalController::_joystickGimbalSendTimeout);
-
-    // Connect joystick input signal to slot with queued connection for thread safety
-    (void) connect(this, &GimbalController::_joystickGimbalInputReceived,
-                   this, &GimbalController::_handleJoystickGimbalInput, Qt::QueuedConnection);
 }
 
 GimbalController::~GimbalController()
@@ -736,174 +716,4 @@ void GimbalController::releaseGimbalControl()
         NAN, // Reserved
         NAN, // Reserved
         _activeGimbal->deviceId()->rawValue().toUInt());
-}
-
-float GimbalController::_applyDeadband(float value, float deadband)
-{
-    if (std::abs(value) <= deadband) {
-        return 0.0f;
-    }
-    float y = (std::abs(value) - deadband) / (1.0f - deadband);
-    return std::copysign(y, value);
-}
-
-float GimbalController::_applyExpo(float value, float expo)
-{
-    return (1.0f - expo) * value + expo * (value * value * value);
-}
-
-void GimbalController::processJoystickGimbalInput(const QVector<float>& axisValues)
-{
-    // This method is called from the Joystick thread, so we emit a signal
-    // to marshal the processing to the main thread
-    emit _joystickGimbalInputReceived(axisValues);
-}
-
-void GimbalController::_handleJoystickGimbalInput(QVector<float> axisValues)
-{
-    // This slot runs in the main thread (connected via Qt::QueuedConnection)
-    auto* settings = SettingsManager::instance()->gimbalControllerSettings();
-
-    // Check if feature is enabled (safe to access settings here in main thread)
-    if (!settings->joystickGimbalEnabled()->rawValue().toBool()) {
-        return;
-    }
-
-    // Get configured axis indices
-    int pitchIdx = settings->joystickGimbalPitchAxisIndex()->rawValue().toInt();
-    int yawIdx = settings->joystickGimbalYawAxisIndex()->rawValue().toInt();
-
-    // Extract axis values
-    float pitchAxis = (pitchIdx < axisValues.size()) ? axisValues[pitchIdx] : 0.0f;
-    float yawAxis = (yawIdx < axisValues.size()) ? axisValues[yawIdx] : 0.0f;
-
-    float deadband = settings->joystickGimbalDeadband()->rawValue().toFloat();
-    float expo = settings->joystickGimbalExpo()->rawValue().toFloat();
-
-    // Apply deadband and expo
-    float processedPitch = _applyExpo(_applyDeadband(pitchAxis, deadband), expo);
-    float processedYaw = _applyExpo(_applyDeadband(yawAxis, deadband), expo);
-
-    // Store raw input for smoothing in timer callback
-    _joystickPitchInput = processedPitch;
-    _joystickYawInput = processedYaw;
-
-    // Start or stop the send timer based on input activity
-    bool hasInput = (std::abs(processedPitch) > 0.001f) || (std::abs(processedYaw) > 0.001f);
-
-    if (hasInput && !_joystickGimbalSendTimer.isActive()) {
-        _joystickGimbalActive = true;
-        _joystickGimbalSendTimer.start();
-        qCDebug(GimbalControllerLog) << "Joystick gimbal control started";
-    } else if (!hasInput && _joystickGimbalActive) {
-        // Keep timer running briefly to send final zero commands
-        // Timer will stop itself after smoothed values reach zero
-    }
-}
-
-void GimbalController::_joystickGimbalSendTimeout()
-{
-    _sendJoystickGimbalCommand();
-}
-
-void GimbalController::_sendJoystickGimbalCommand()
-{
-    if (!_activeGimbal) {
-        return;
-    }
-
-    if (!_tryGetGimbalControl()) {
-        return;
-    }
-
-    auto sharedLink = _vehicle->vehicleLinkManager()->primaryLink().lock();
-    if (!sharedLink) {
-        qCDebug(GimbalControllerLog) << "_sendJoystickGimbalCommand: primary link gone!";
-        return;
-    }
-
-    auto* settings = SettingsManager::instance()->gimbalControllerSettings();
-    float smoothingAlpha = settings->joystickGimbalSmoothing()->rawValue().toFloat();
-    float pitchLimit = settings->joystickGimbalPitchLimit()->rawValue().toFloat();
-    float yawLimit = settings->joystickGimbalYawLimit()->rawValue().toFloat();
-
-    // Apply smoothing (low-pass filter)
-    _joystickSmoothedPitch = smoothingAlpha * _joystickPitchInput + (1.0f - smoothingAlpha) * _joystickSmoothedPitch;
-    _joystickSmoothedYaw = smoothingAlpha * _joystickYawInput + (1.0f - smoothingAlpha) * _joystickSmoothedYaw;
-
-    // Map smoothed values to angles
-    float pitchAngle = -_joystickSmoothedPitch * pitchLimit;  // Negative because stick up = pitch down
-    float yawAngle = _joystickSmoothedYaw * yawLimit;
-
-    // Check if we should stop
-    bool inputActive = (std::abs(_joystickPitchInput) > 0.001f) || (std::abs(_joystickYawInput) > 0.001f);
-    bool smoothedActive = (std::abs(_joystickSmoothedPitch) > 0.001f) || (std::abs(_joystickSmoothedYaw) > 0.001f);
-
-    if (!inputActive && !smoothedActive) {
-        _joystickGimbalSendTimer.stop();
-        _joystickGimbalActive = false;
-        qCDebug(GimbalControllerLog) << "Joystick gimbal control stopped";
-        return;
-    }
-
-    // Convert euler angles to quaternion (roll=0)
-    float roll = 0.0f;
-    float pitch = qDegreesToRadians(pitchAngle);
-    float yaw = qDegreesToRadians(yawAngle);
-
-    float q[4];
-    float cr = std::cos(roll / 2.0f);
-    float sr = std::sin(roll / 2.0f);
-    float cp = std::cos(pitch / 2.0f);
-    float sp = std::sin(pitch / 2.0f);
-    float cy = std::cos(yaw / 2.0f);
-    float sy = std::sin(yaw / 2.0f);
-
-    q[0] = cr * cp * cy + sr * sp * sy;  // w
-    q[1] = sr * cp * cy - cr * sp * sy;  // x
-    q[2] = cr * sp * cy + sr * cp * sy;  // y
-    q[3] = cr * cp * sy - sr * sp * cy;  // z
-
-    // Send GIMBAL_DEVICE_SET_ATTITUDE message
-    mavlink_message_t msg;
-    mavlink_msg_gimbal_device_set_attitude_pack_chan(
-        MAVLinkProtocol::instance()->getSystemId(),
-        MAVLinkProtocol::getComponentId(),
-        sharedLink->mavlinkChannel(),
-        &msg,
-        _vehicle->id(),
-        static_cast<uint8_t>(_activeGimbal->managerCompid()->rawValue().toUInt()),
-        GIMBAL_DEVICE_FLAGS_ROLL_LOCK | GIMBAL_DEVICE_FLAGS_PITCH_LOCK | GIMBAL_DEVICE_FLAGS_YAW_IN_VEHICLE_FRAME,
-        q,
-        NAN, NAN, NAN  // angular velocities unused
-    );
-
-    _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
-
-    QString logMsg = QString("[%1] GIMBAL_DEVICE_SET_ATTITUDE: pitch=%2° yaw=%3° q=[%4,%5,%6,%7]")
-        .arg(QTime::currentTime().toString("hh:mm:ss.zzz"))
-        .arg(pitchAngle, 0, 'f', 2)
-        .arg(yawAngle, 0, 'f', 2)
-        .arg(q[0], 0, 'f', 4)
-        .arg(q[1], 0, 'f', 4)
-        .arg(q[2], 0, 'f', 4)
-        .arg(q[3], 0, 'f', 4);
-    _addMessageLog(logMsg);
-
-    qCDebug(GimbalControllerLog) << "Joystick gimbal command sent: pitch=" << pitchAngle << " yaw=" << yawAngle;
-}
-
-void GimbalController::_addMessageLog(const QString& message)
-{
-    _gimbalMessageLog.prepend(message);
-    while (_gimbalMessageLog.size() > _maxLogEntries) {
-        _gimbalMessageLog.removeLast();
-    }
-    emit gimbalMessageLogChanged();
-}
-
-void GimbalController::clearMessageLog()
-{
-    _gimbalMessageLog.clear();
-    emit gimbalMessageLogChanged();
 }

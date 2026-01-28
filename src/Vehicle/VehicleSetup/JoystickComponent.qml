@@ -150,12 +150,6 @@ SetupPage {
                                     text: qsTr("Settings")
                                     checked: false
                                 }
-
-                                QGCTabButton {
-                                    text: qsTr("Gimbal")
-                                    checked: false
-                                    visible: QGroundControl.settingsManager.gimbalControllerSettings.joystickGimbalShowUI.rawValue
-                                }
                             }
 
                             JoystickComponentButtons {
@@ -171,12 +165,6 @@ SetupPage {
                                 Layout.fillWidth: true
                                 joystick: _activeJoystick
                                 visible: tabBar.currentIndex === 1
-                            }
-
-                            JoystickComponentGimbal {
-                                id: joystickGimbal
-                                Layout.fillWidth: true
-                                visible: tabBar.currentIndex === 2 && QGroundControl.settingsManager.gimbalControllerSettings.joystickGimbalShowUI.rawValue
                             }
                         }
                     }

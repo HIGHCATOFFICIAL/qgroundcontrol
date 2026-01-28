@@ -21,7 +21,6 @@ class GimbalController : public QObject
 
     Q_PROPERTY(Gimbal*              activeGimbal    READ activeGimbal WRITE setActiveGimbal NOTIFY activeGimbalChanged)
     Q_PROPERTY(QmlObjectListModel*  gimbals         READ gimbals                            CONSTANT)
-    Q_PROPERTY(QStringList          gimbalMessageLog READ gimbalMessageLog                  NOTIFY gimbalMessageLogChanged)
 
 public:
     GimbalController(Vehicle *vehicle);
@@ -29,9 +28,6 @@ public:
 
     Gimbal *activeGimbal() const { return _activeGimbal; }
     QmlObjectListModel *gimbals() const { return _gimbals; }
-    QStringList gimbalMessageLog() const { return _gimbalMessageLog; }
-
-    Q_INVOKABLE void clearMessageLog();
 
     void setActiveGimbal(Gimbal *gimbal);
 
@@ -50,15 +46,9 @@ public:
     /// @param yaw_rate_deg_s Yaw rate in degrees per second
     Q_INVOKABLE void sendGimbalRate(float pitch_rate_deg_s, float yaw_rate_deg_s);
 
-    /// Process joystick gimbal input (called from Joystick thread)
-    /// @param axisValues Vector of normalized axis values (-1 to 1)
-    void processJoystickGimbalInput(const QVector<float>& axisValues);
-
 signals:
     void activeGimbalChanged();
     void showAcquireGimbalControlPopup(); // This triggers a popup in QML asking the user for aproval to take control
-    void gimbalMessageLogChanged();
-    void _joystickGimbalInputReceived(QVector<float> axisValues); // Internal signal for thread marshalling
 
 public slots:
     // These slots are conected with joysticks for button control
@@ -72,8 +62,6 @@ public slots:
 private slots:
     void _mavlinkMessageReceived(const mavlink_message_t& message);
     void _rateSenderTimeout();
-    void _joystickGimbalSendTimeout();
-    void _handleJoystickGimbalInput(QVector<float> axisValues);
 
 private:
     struct GimbalPairId {
@@ -114,24 +102,8 @@ private:
     bool _yawInVehicleFrame(uint32_t flags);
 
     void _sendGimbalAttitudeRates(float pitch_rate_deg_s, float yaw_rate_deg_s);
-    void _sendJoystickGimbalCommand();
-    static float _applyDeadband(float value, float deadband);
-    static float _applyExpo(float value, float expo);
-    void _addMessageLog(const QString& message);
 
     QTimer _rateSenderTimer;
-    QTimer _joystickGimbalSendTimer;
-
-    // Joystick gimbal control state
-    float _joystickPitchInput = 0.0f;
-    float _joystickYawInput = 0.0f;
-    float _joystickSmoothedPitch = 0.0f;
-    float _joystickSmoothedYaw = 0.0f;
-    bool _joystickGimbalActive = false;
-
-    // Message log for debugging
-    QStringList _gimbalMessageLog;
-    static constexpr int _maxLogEntries = 100;
 
     Vehicle *_vehicle = nullptr;
     Gimbal *_activeGimbal = nullptr;
