@@ -830,18 +830,23 @@ void Joystick::_handleAxis()
         axisIndex = _rgFunctionAxis[throttleFunction];
         float throttle = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex], throttleModeCenterZero ? useDeadband : false);
 
+        // Get gimbal pitch from calibrated axis (if calibrated)
         float gimbalPitch = NAN;
-        if (enableManualControlExtensions && _axisCount > 4) {
-            // Hardcoded to axis 4
-            axisIndex = 4;
-            gimbalPitch = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex],useDeadband);
+        axisIndex = _rgFunctionAxis[gimbalPitchFunction];
+        if (axisIndex >= 0 && axisIndex < _axisCount) {
+            gimbalPitch = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex], useDeadband);
+
+            // Send to GimbalController for GIMBAL_MANAGER_SET_MANUAL_CONTROL
+            if (GimbalController* gc = vehicle->gimbalController()) {
+                gc->setJoystickGimbalRate(gimbalPitch);
+            }
         }
 
+        // Get camera zoom from calibrated axis (if calibrated) - for future use
         float gimbalYaw = NAN;
-        if (enableManualControlExtensions && _axisCount > 5) {
-            // Hardcoded to axis 5
-            axisIndex = 5;
-            gimbalYaw = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex],useDeadband);
+        axisIndex = _rgFunctionAxis[cameraZoomFunction];
+        if (axisIndex >= 0 && axisIndex < _axisCount) {
+            gimbalYaw = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex], useDeadband);
         }
 
         if (throttleSmoothing) {

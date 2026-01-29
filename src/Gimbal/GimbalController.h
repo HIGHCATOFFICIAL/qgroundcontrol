@@ -46,6 +46,10 @@ public:
     /// @param yaw_rate_deg_s Yaw rate in degrees per second
     Q_INVOKABLE void sendGimbalRate(float pitch_rate_deg_s, float yaw_rate_deg_s);
 
+    /// Set joystick gimbal pitch rate (called from Joystick thread)
+    /// @param pitchRate Normalized pitch rate (-1 to 1, positive = up)
+    void setJoystickGimbalRate(float pitchRate);
+
 signals:
     void activeGimbalChanged();
     void showAcquireGimbalControlPopup(); // This triggers a popup in QML asking the user for aproval to take control
@@ -62,6 +66,7 @@ public slots:
 private slots:
     void _mavlinkMessageReceived(const mavlink_message_t& message);
     void _rateSenderTimeout();
+    void _joystickGimbalTimeout();
 
 private:
     struct GimbalPairId {
@@ -102,8 +107,14 @@ private:
     bool _yawInVehicleFrame(uint32_t flags);
 
     void _sendGimbalAttitudeRates(float pitch_rate_deg_s, float yaw_rate_deg_s);
+    void _sendJoystickGimbalManualControl();
 
     QTimer _rateSenderTimer;
+    QTimer _joystickGimbalTimer;
+
+    // Joystick gimbal control state
+    float _joystickGimbalPitchRate = 0.0f;
+    static constexpr float _joystickGimbalDeadband = 0.05f;
 
     Vehicle *_vehicle = nullptr;
     Gimbal *_activeGimbal = nullptr;

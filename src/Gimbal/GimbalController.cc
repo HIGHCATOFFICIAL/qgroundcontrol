@@ -22,6 +22,10 @@ GimbalController::GimbalController(Vehicle *vehicle)
 
     _rateSenderTimer.setInterval(500);
     (void) connect(&_rateSenderTimer, &QTimer::timeout, this, &GimbalController::_rateSenderTimeout);
+
+    // Joystick gimbal control timer at 20Hz (50ms interval)
+    _joystickGimbalTimer.setInterval(50);
+    (void) connect(&_joystickGimbalTimer, &QTimer::timeout, this, &GimbalController::_joystickGimbalTimeout);
 }
 
 GimbalController::~GimbalController()
@@ -716,4 +720,72 @@ void GimbalController::releaseGimbalControl()
         NAN, // Reserved
         NAN, // Reserved
         _activeGimbal->deviceId()->rawValue().toUInt());
+}
+
+void GimbalController::setJoystickGimbalRate(float pitchRate)
+{
+    // Store the pitch rate (thread-safe as it's just a float assignment)
+    _joystickGimbalPitchRate = pitchRate;
+
+    // Check if within deadband
+    bool isActive = std::abs(pitchRate) > _joystickGimbalDeadband;
+
+    if (isActive && !_joystickGimbalTimer.isActive()) {
+        // Start sending at 20Hz
+        _joystickGimbalTimer.start();
+        qCDebug(GimbalControllerLog) << "Joystick gimbal control started";
+    } else if (!isActive && _joystickGimbalTimer.isActive()) {
+        // Stop sending
+        _joystickGimbalTimer.stop();
+        _joystickGimbalPitchRate = 0.0f;
+        qCDebug(GimbalControllerLog) << "Joystick gimbal control stopped";
+    }
+}
+
+void GimbalController::_joystickGimbalTimeout()
+{
+    _sendJoystickGimbalManualControl();
+}
+
+void GimbalController::_sendJoystickGimbalManualControl()
+{
+    auto sharedLink = _vehicle->vehicleLinkManager()->primaryLink().lock();
+    if (!sharedLink) {
+        qCDebug(GimbalControllerLog) << "_sendJoystickGimbalManualControl: primary link gone!";
+        return;
+    }
+
+    // Scale pitch rate: joystick (-1 to 1) * 0.5 gives ~30°/s max rate
+    // The GIMBAL_MANAGER_SET_MANUAL_CONTROL pitch_rate is unitless (-1 to 1)
+    float scaledPitchRate = _joystickGimbalPitchRate * 0.5f;
+
+    uint32_t flags = GIMBAL_MANAGER_FLAGS_ROLL_LOCK | GIMBAL_MANAGER_FLAGS_PITCH_LOCK;
+    if (_activeGimbal && _activeGimbal->yawLock()) {
+        flags |= GIMBAL_MANAGER_FLAGS_YAW_LOCK;
+    }
+
+    // Target system 1, component 154 (gimbal manager)
+    constexpr uint8_t targetSystem = 1;
+    constexpr uint8_t targetComponent = 154;
+    constexpr uint8_t gimbalDeviceId = 0;  // All gimbal devices
+
+    mavlink_message_t msg;
+    mavlink_msg_gimbal_manager_set_manual_control_pack_chan(
+        MAVLinkProtocol::instance()->getSystemId(),
+        MAVLinkProtocol::getComponentId(),
+        sharedLink->mavlinkChannel(),
+        &msg,
+        targetSystem,
+        targetComponent,
+        flags,
+        gimbalDeviceId,
+        NAN,                // pitch angle (NaN = ignored, using rate)
+        NAN,                // yaw angle (NaN = ignored)
+        scaledPitchRate,    // pitch rate (-1 to 1)
+        0.0f                // yaw rate
+    );
+
+    _vehicle->sendMessageOnLinkThreadSafe(sharedLink.get(), msg);
+
+    qCDebug(GimbalControllerLog) << "Joystick gimbal command sent: pitchRate=" << scaledPitchRate;
 }
