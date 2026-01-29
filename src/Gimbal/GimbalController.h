@@ -53,6 +53,7 @@ public:
 signals:
     void activeGimbalChanged();
     void showAcquireGimbalControlPopup(); // This triggers a popup in QML asking the user for aproval to take control
+    void _joystickGimbalRateReceived(float pitchRate); // Internal signal for thread marshalling
 
 public slots:
     // These slots are conected with joysticks for button control
@@ -67,6 +68,7 @@ private slots:
     void _mavlinkMessageReceived(const mavlink_message_t& message);
     void _rateSenderTimeout();
     void _joystickGimbalTimeout();
+    void _handleJoystickGimbalRate(float pitchRate);
 
 private:
     struct GimbalPairId {

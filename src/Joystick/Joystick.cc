@@ -833,8 +833,23 @@ void Joystick::_handleAxis()
         // Get gimbal pitch from calibrated axis (if calibrated)
         float gimbalPitch = NAN;
         axisIndex = _rgFunctionAxis[gimbalPitchFunction];
+
         if (axisIndex >= 0 && axisIndex < _axisCount) {
-            gimbalPitch = _adjustRange(_getAxisValue(axisIndex), _rgCalibration[axisIndex], useDeadband);
+            int rawValue = _getAxisValue(axisIndex);
+            // Use false for withDeadbands to bypass potential deadband calibration issues
+            gimbalPitch = _adjustRange(rawValue, _rgCalibration[axisIndex], false);
+
+            // Log every 10th call (5Hz) to see raw values changing
+            static int logCounter = 0;
+            static int lastRaw = 0;
+            if (++logCounter >= 10 || rawValue != lastRaw) {
+                logCounter = 0;
+                lastRaw = rawValue;
+                const auto& cal = _rgCalibration[axisIndex];
+                qWarning() << "GIMBAL axis:" << axisIndex << "raw:" << rawValue << "adj:" << gimbalPitch
+                           << "cal: min=" << cal.min << "max=" << cal.max << "center=" << cal.center
+                           << "deadband=" << cal.deadband << "useDeadband=" << useDeadband;
+            }
 
             // Send to GimbalController for GIMBAL_MANAGER_SET_MANUAL_CONTROL
             if (GimbalController* gc = vehicle->gimbalController()) {
